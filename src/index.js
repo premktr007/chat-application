@@ -20,8 +20,30 @@ const public_dir = path.join(__dirname, '../public')
 // serving the public directory
 app.use(express.static(public_dir))
 
-io.on('connection', () => {
-    console.log('new websocket connection')
+io.on('connection', (socket) => {
+
+    // welcome message
+    socket.emit('message', 'Welcome')
+
+    // sending messages
+    socket.on('sendMessage', (message) => {
+        io.emit('message',message)
+    })
+
+    // sending to every client except current client
+    socket.broadcast.emit('message', 'A new user has joined !')
+
+    // when client disconnected
+    socket.on('disconnect', () => {
+        // sending to every client
+        io.emit('message', 'User has left')
+    })
+
+    // sending location
+    socket.on('sendLocation', (coords) => {
+        io.emit('message', `https://www.google.com/maps?q=${coords.lat},${coords.lon}`)
+    })
+
 })
 
 // listening to the port
