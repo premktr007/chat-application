@@ -1,20 +1,48 @@
 const socket = io()
 
+const $messageForm = document.querySelector('#message-form');
+const $messageInput = document.querySelector('#message');
+const $locationButton = document.querySelector('#location');
+const $messageSendBtn = document.querySelector('#send-btn');
+const $messages = document.querySelector('#messages')
+
+// templates
+const $messageTemplate = document.querySelector('#message-template').innerHTML;
+const $locationTemplate = document.querySelector('#location-template').innerHTML;
+
 // listens to all messages
 socket.on('message', (msg) => {
-    console.log(msg)
+    const html = Mustache.render($messageTemplate, {message: msg})
+
+    $messages.insertAdjacentHTML('beforeend', html)
 })
 
-document.querySelector('#message-form').addEventListener('submit', (e) => {
+// listens to locations
+socket.on('location', (location) => {
+    const html = Mustache.render($locationTemplate, {location})
+
+    $messages.insertAdjacentHTML('beforeend', html)
+})
+
+$messageForm.addEventListener('submit', (e) => {
     // preventing browser from reloading the page
     e.preventDefault()
 
-    const message = document.querySelector('#message').value;
+    const message = $messageInput.value
+    
+    $messageSendBtn.setAttribute('disable', 'true')
 
-    socket.emit('sendMessage', message)
+    socket.emit('sendMessage', message, (status) => {
+        if(status) {
+            console.log(status)
+            $messageSendBtn.setAttribute('disable', 'false')
+            $messageInput.value = ''
+            $messageInput.focus()
+        }
+    })
 })
 
-document.querySelector('#location').addEventListener('click', () => {
+$locationButton.addEventListener('click', () => {
 
     if(!navigator.geolocation) {
         return alert('your browser does not support geolocation')
@@ -22,6 +50,14 @@ document.querySelector('#location').addEventListener('click', () => {
 
     // getting the current location of the browser
     navigator.geolocation.getCurrentPosition( (position) => {
-        socket.emit('sendLocation',{ lat:position.coords.latitude, lon:position.coords.latitude})
+
+        $locationButton.setAttribute('disable', 'true')
+
+        socket.emit('sendLocation',{ lat:position.coords.latitude, lon:position.coords.latitude }, (status) => {
+            if (status) {
+                $locationButton.setAttribute('disable', 'false')
+            }
+            
+        })
     })
 })

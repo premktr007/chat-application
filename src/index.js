@@ -2,6 +2,7 @@ const express = require('express')
 const http = require('http')
 const path = require('path')
 const socketio = require('socket.io')
+const badwords = require('bad-words')
 
 const app = express()
 
@@ -26,22 +27,32 @@ io.on('connection', (socket) => {
     socket.emit('message', 'Welcome')
 
     // sending messages
-    socket.on('sendMessage', (message) => {
+    socket.on('sendMessage', (message, status) => {
+        const filter = new badwords()
+        
+        if(filter.isProfane(message)) {
+            status('Profanity is not encouraged!!')
+            return io.emit('message',filter.clean(message))
+        } 
         io.emit('message',message)
+        // callback acknowledge
+        status('Message Delivered')
+
     })
 
     // sending to every client except current client
     socket.broadcast.emit('message', 'A new user has joined !')
 
+    // sending location
+    socket.on('sendLocation', (coords,status) => {
+        io.emit('location', `https://www.google.com/maps?q=${coords.lat},${coords.lon}`)
+        status('Location Shared')
+    })
+
     // when client disconnected
     socket.on('disconnect', () => {
         // sending to every client
         io.emit('message', 'User has left')
-    })
-
-    // sending location
-    socket.on('sendLocation', (coords) => {
-        io.emit('message', `https://www.google.com/maps?q=${coords.lat},${coords.lon}`)
     })
 
 })
