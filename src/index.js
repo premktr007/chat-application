@@ -3,6 +3,7 @@ const http = require('http')
 const path = require('path')
 const socketio = require('socket.io')
 const badwords = require('bad-words')
+const { generateMessage } = require('./utils/messages')
 
 const app = express()
 
@@ -24,7 +25,7 @@ app.use(express.static(public_dir))
 io.on('connection', (socket) => {
 
     // welcome message
-    socket.emit('message', 'Welcome')
+    socket.emit('message', generateMessage('Welcome!!'))
 
     // sending messages
     socket.on('sendMessage', (message, status) => {
@@ -34,25 +35,25 @@ io.on('connection', (socket) => {
             status('Profanity is not encouraged!!')
             return io.emit('message',filter.clean(message))
         } 
-        io.emit('message',message)
+        io.emit('message',generateMessage(message))
         // callback acknowledge
         status('Message Delivered')
 
     })
 
     // sending to every client except current client
-    socket.broadcast.emit('message', 'A new user has joined !')
+    socket.broadcast.emit('message', generateMessage('A new user has joined !'))
 
     // sending location
     socket.on('sendLocation', (coords,status) => {
-        io.emit('location', `https://www.google.com/maps?q=${coords.lat},${coords.lon}`)
+        io.emit('location', generateMessage(`https://www.google.com/maps?q=${coords.lat},${coords.lon}`))
         status('Location Shared')
     })
 
     // when client disconnected
     socket.on('disconnect', () => {
         // sending to every client
-        io.emit('message', 'User has left')
+        io.emit('message', generateMessage('User has left'))
     })
 
 })
