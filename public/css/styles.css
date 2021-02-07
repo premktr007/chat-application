@@ -139,7 +139,7 @@ button:disabled {
     display: flex;
     flex-shrink: 0;
     margin-top: 16px;
-    padding: 24px;
+    padding: 24px 24px 4px 24px;
 }
 
 .compose form {
@@ -158,6 +158,10 @@ button:disabled {
 
 .compose button {
     font-size: 14px;
+}
+
+.user__typing {
+    padding: 0px 0px 5px 24px;
 }
 
 /* Chat Sidebar Styles */

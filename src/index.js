@@ -4,6 +4,7 @@ const path = require('path')
 const socketio = require('socket.io')
 const badwords = require('bad-words')
 const { generateMessage } = require('./utils/messages')
+const { getUser, removeUser, addUser, getUsersInRoom } = require('./utils/users')
 
 const app = express()
 
@@ -24,36 +25,63 @@ app.use(express.static(public_dir))
 
 io.on('connection', (socket) => {
 
-    // welcome message
-    socket.emit('message', generateMessage('Welcome!!'))
+    socket.on('join', ({ username, room}, status) => {
+        const { error, user } =  addUser({id: socket.id, username, room})
+
+        if (error) {
+            return status(error)
+        }
+        socket.join(room)
+         // welcome message
+        socket.emit('message', generateMessage('Welcome!!'))
+
+         // sending message to every client in that room except current client
+        socket.broadcast.to(room).emit('message', generateMessage('Admin', `${user.username} has joined !`))
+
+        // emiting group users data
+        io.to(user.room).emit('users', { room: user.room, users: getUsersInRoom(user.room)})
+    })
 
     // sending messages
     socket.on('sendMessage', (message, status) => {
         const filter = new badwords()
-        
+        const user = getUser(socket.id)
+
         if(filter.isProfane(message)) {
-            status('Profanity is not encouraged!!')
-            return io.emit('message',filter.clean(message))
+            status('profanity')
+            alert('Profanity is not encouraged')
+            return io.to(user.room).emit('message', generateMessage(user.username, filter.clean(message)))
         } 
-        io.emit('message',generateMessage(message))
+        io.to(user.room).emit('message', generateMessage(user.username, message))
         // callback acknowledge
         status('Message Delivered')
 
     })
 
-    // sending to every client except current client
-    socket.broadcast.emit('message', generateMessage('A new user has joined !'))
+    socket.on('typing', () => {
+        const user = getUser(socket.id)
+
+        if(user) {
+            socket.broadcast.to(user.room).emit('usertyping', ` ${user.username} is typing...`)
+        }
+    })
 
     // sending location
     socket.on('sendLocation', (coords,status) => {
-        io.emit('location', generateMessage(`https://www.google.com/maps?q=${coords.lat},${coords.lon}`))
+        const user = getUser(socket.id)
+        io.to(user.room).emit('location', generateMessage(user.username, `https://www.google.com/maps?q=${coords.lat},${coords.lon}`))
         status('Location Shared')
     })
 
     // when client disconnected
     socket.on('disconnect', () => {
+        const user = removeUser(socket.id)
         // sending to every client
-        io.emit('message', generateMessage('User has left'))
+        if (user) {
+            io.to(user.room).emit('message', generateMessage('Admin', ` ${user.username} has left`))
+            // emiting group users data
+            io.to(user.room).emit('users', { room: user.room, users: getUsersInRoom(user.room)})
+        }
     })
 
 })
