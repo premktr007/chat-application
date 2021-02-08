@@ -49,10 +49,9 @@ io.on('connection', (socket) => {
 
         if(filter.isProfane(message)) {
             status('profanity')
-            alert('Profanity is not encouraged')
-            return io.to(user.room).emit('message', generateMessage(user.username, filter.clean(message)))
+            return io.to(user.room).emit('message', generateMessage(user.username, filter.clean(message), socket.id))
         } 
-        io.to(user.room).emit('message', generateMessage(user.username, message))
+        io.to(user.room).emit('message', generateMessage(user.username, message, socket.id))
         // callback acknowledge
         status('Message Delivered')
 
@@ -69,7 +68,7 @@ io.on('connection', (socket) => {
     // sending location
     socket.on('sendLocation', (coords,status) => {
         const user = getUser(socket.id)
-        io.to(user.room).emit('location', generateMessage(user.username, `https://www.google.com/maps?q=${coords.lat},${coords.lon}`))
+        io.to(user.room).emit('location', generateMessage(user.username, `https://www.google.com/maps?q=${coords.lat},${coords.lon}`, socket.id))
         status('Location Shared')
     })
 

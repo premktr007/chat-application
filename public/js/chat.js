@@ -1,50 +1,44 @@
 const socket = io()
 
 const $messageForm = document.querySelector('#message-form');
-const $messageInput = document.querySelector('#message');
+const $messageInput = document.querySelector('#message-input');
 const $locationButton = document.querySelector('#location');
 const $messageSendBtn = document.querySelector('#send-btn');
 const $messages = document.querySelector('#messages');
+const $userMessage = document.getElementsByClassName('message');
 const $sidebar = document.querySelector('#sidebar');
 const $userTyping = document.querySelector('#user-typing');
 
 // templates
-const $messageTemplate = document.querySelector('#message-template').innerHTML;
-const $locationTemplate = document.querySelector('#location-template').innerHTML;
+const $RHSmessageTemplate = document.querySelector('#RHS-message-template').innerHTML;
+const $LHSmessageTemplate = document.querySelector('#LHS-message-template').innerHTML;
+const $RHSlocationTemplate = document.querySelector('#RHS-location-template').innerHTML;
+const $LHSlocationTemplate = document.querySelector('#LHS-location-template').innerHTML;
 const $sidebarTemplate = document.querySelector('#sidebar-template').innerHTML;
 
 // gets the username and room to an object from query params
 const { username, room } = Qs.parse(location.search, { ignoreQueryPrefix: true })
 
 const autoscroll = () => {
-    // New message element
-    const $newMessage = $messages.lastElementChild
-
-    // Height of the new message
-    const newMessageStyles = getComputedStyle($newMessage)
-    const newMessageMargin = parseInt(newMessageStyles.marginBottom)
-    const newMessageHeight = $newMessage.offsetHeight + newMessageMargin
-
-    // Visible height
-    const visibleHeight = $messages.offsetHeight
-
-    // Height of messages container
-    const containerHeight = $messages.scrollHeight
-
-    // How far have I scrolled?
-    const scrollOffset = $messages.scrollTop + visibleHeight
-
-    if (containerHeight - newMessageHeight <= scrollOffset) {
-        $messages.scrollTop = $messages.scrollHeight
-    }
+    $messages.scrollTop = objDiv.scrollHeight
 }
 
 // listens to all messages
 socket.on('message', (msg) => {
-    const html = Mustache.render($messageTemplate,{ message: msg.text, 
-                                                    time: moment(msg.createdAt).format('hh:mm A'),
-                                                    username: msg.username
-                                                })
+
+    // render message RHS
+    if(socket.id == msg.socketid) {
+        var html = Mustache.render($RHSmessageTemplate,{ message: msg.text, 
+            time: moment(msg.createdAt).format('hh:mm A'),
+            username: msg.username
+        })
+    }
+    else { // render message LHS
+        var html = Mustache.render($LHSmessageTemplate,{ message: msg.text, 
+            time: moment(msg.createdAt).format('hh:mm A'),
+            username: msg.username
+        })
+    }
 
     $messages.insertAdjacentHTML('beforeend', html)
     autoscroll()
@@ -52,11 +46,17 @@ socket.on('message', (msg) => {
 
 // listens to locations
 socket.on('location', (location) => {
-    const html = Mustache.render($locationTemplate, { location: location.text,
-                                                    time: moment(Location.createdAt).format('hh:mm A'),
-                                                    username: location.username
-                                                    })
-
+    if(socket.id == location.socketid) { 
+        var html = Mustache.render($RHSlocationTemplate, { location: location.text,
+                                                        time: moment(Location.createdAt).format('hh:mm A'),
+                                                        })
+    }
+    else {
+        var html = Mustache.render($LHSlocationTemplate, { location: location.text,
+                                                        time: moment(Location.createdAt).format('hh:mm A'),
+                                                        username: location.username
+                                                        })
+    }
     $messages.insertAdjacentHTML('beforeend', html)
     autoscroll()
 })
@@ -77,7 +77,9 @@ $messageForm.addEventListener('submit', (e) => {
 
     socket.emit('sendMessage', message, (status) => {
         if(status) {
-            console.log(status)
+            if (status=='profanity') {
+                alert('Profanity is not encouraged')
+            }
             $messageSendBtn.setAttribute('disable', 'false')
             $messageInput.value = ''
             $messageInput.focus()

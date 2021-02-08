@@ -164,6 +164,14 @@ button:disabled {
     padding: 0px 0px 5px 24px;
 }
 
+.RHS__message {
+    text-align: right;
+}
+
+.LHS__message {
+    text-align: left;
+}
+
 /* Chat Sidebar Styles */
 
 .room-title {
@@ -181,7 +189,11 @@ button:disabled {
 }
 
 .users {
-    list-style-type: none;
+    /* list-style-type: none; */
     font-weight: 300;
-    padding: 12px 24px 0 24px;
+    padding: 12px 24px 0px 30px;
+}
+
+.users li {
+    padding-bottom: 10px;
 }
