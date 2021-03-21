@@ -33,13 +33,21 @@ io.on('connection', (socket) => {
         }
         socket.join(room)
          // welcome message
-        socket.emit('message', generateMessage('Welcome!!'))
+        socket.emit('message', generateMessage('Admin','Welcome!!'))
 
          // sending message to every client in that room except current client
         socket.broadcast.to(room).emit('message', generateMessage('Admin', `${user.username} has joined !`))
 
         // emiting group users data
         io.to(user.room).emit('users', { room: user.room, users: getUsersInRoom(user.room)})
+    })
+    
+    socket.on('typing', () => {
+        const user = getUser(socket.id)
+
+        if(user) {
+            socket.broadcast.to(user.room).emit('usertyping', ` ${user.username} is typing...`)
+        }
     })
 
     // sending messages
@@ -55,14 +63,6 @@ io.on('connection', (socket) => {
         // callback acknowledge
         status('Message Delivered')
 
-    })
-
-    socket.on('typing', () => {
-        const user = getUser(socket.id)
-
-        if(user) {
-            socket.broadcast.to(user.room).emit('usertyping', ` ${user.username} is typing...`)
-        }
     })
 
     // sending location

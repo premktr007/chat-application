@@ -20,8 +20,56 @@ const $sidebarTemplate = document.querySelector('#sidebar-template').innerHTML;
 const { username, room } = Qs.parse(location.search, { ignoreQueryPrefix: true })
 
 const autoscroll = () => {
-    $messages.scrollTop = objDiv.scrollHeight
+    // New message element
+    const $newMessage = $messages.lastElementChild
+
+    // Height of the new message
+    const newMessageStyles = getComputedStyle($newMessage)
+    const newMessageMargin = parseInt(newMessageStyles.marginBottom)
+    const newMessageHeight = $newMessage.offsetHeight + newMessageMargin
+
+    // Visible height
+    const visibleHeight = $messages.offsetHeight
+
+    // Height of messages container
+    const containerHeight = $messages.scrollHeight
+
+    // How far have I scrolled?
+    const scrollOffset = $messages.scrollTop + visibleHeight
+
+    if (containerHeight - newMessageHeight <= scrollOffset) {
+        $messages.scrollTop = $messages.scrollHeight
+    }
 }
+
+// joining the user to the room
+socket.emit('join', { username, room}, (status) => {
+    if (status) {
+        alert(status)
+        window.location.href = '/'
+    }
+})
+
+// listing the users of the room
+socket.on('users', ({ room, users }) => {
+    const html = Mustache.render($sidebarTemplate, { room: room, users: users })
+    $sidebar.innerHTML = html
+})
+
+// when user not typing
+const userNotTyping = () => {
+    $userTyping.textContent = ""
+}
+
+// user typing feature
+$messageInput.addEventListener('keydown', () => {
+    socket.emit('typing')
+    socket.on('usertyping', (message) => {
+        $userTyping.textContent = message;
+        setTimeout(userNotTyping, 500)
+    })
+    
+})
 
 // listens to all messages
 socket.on('message', (msg) => {
@@ -42,28 +90,6 @@ socket.on('message', (msg) => {
 
     $messages.insertAdjacentHTML('beforeend', html)
     autoscroll()
-})
-
-// listens to locations
-socket.on('location', (location) => {
-    if(socket.id == location.socketid) { 
-        var html = Mustache.render($RHSlocationTemplate, { location: location.text,
-                                                        time: moment(Location.createdAt).format('hh:mm A'),
-                                                        })
-    }
-    else {
-        var html = Mustache.render($LHSlocationTemplate, { location: location.text,
-                                                        time: moment(Location.createdAt).format('hh:mm A'),
-                                                        username: location.username
-                                                        })
-    }
-    $messages.insertAdjacentHTML('beforeend', html)
-    autoscroll()
-})
-
-socket.on('users', ({ room, users }) => {
-    const html = Mustache.render($sidebarTemplate, { room: room, users: users })
-    $sidebar.innerHTML = html
 })
 
 // sending messages
@@ -87,20 +113,22 @@ $messageForm.addEventListener('submit', (e) => {
     })
 })
 
-// user typing feature
-$messageInput.addEventListener('keydown', () => {
-    socket.emit('typing')
-    socket.on('usertyping', (message) => {
-        $userTyping.textContent = message;
-        setTimeout(userNotTyping, 500)
-    })
-    
+// listens to locations
+socket.on('location', (location) => {
+    if(socket.id == location.socketid) { 
+        var html = Mustache.render($RHSlocationTemplate, { location: location.text,
+                                                        time: moment(Location.createdAt).format('hh:mm A'),
+                                                        })
+    }
+    else {
+        var html = Mustache.render($LHSlocationTemplate, { location: location.text,
+                                                        time: moment(Location.createdAt).format('hh:mm A'),
+                                                        username: location.username
+                                                        })
+    }
+    $messages.insertAdjacentHTML('beforeend', html)
+    autoscroll()
 })
-
-// when user not typing
-const userNotTyping = () => {
-    $userTyping.textContent = ""
-}
 
 // sending locations
 $locationButton.addEventListener('click', () => {
@@ -121,11 +149,4 @@ $locationButton.addEventListener('click', () => {
             
         })
     })
-})
-
-socket.emit('join', { username, room}, (status) => {
-    if (status) {
-        alert(status)
-        window.location.href = '/'
-    }
 })
